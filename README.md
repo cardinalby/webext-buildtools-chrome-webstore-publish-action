@@ -1,4 +1,4 @@
-![Node.js CI](https://github.com/cardinalby/webext-buildtools-chrome-webstore-action/workflows/build-test/badge.svg)
+![Node.js CI](https://github.com/cardinalby/webext-buildtools-chrome-webstore-publish-action/workflows/build-test/badge.svg)
 
 # Publish your uploaded WebExtension at Chrome Web Store
 
