@@ -1,0 +1,37 @@
+name: 'webext-buildtools-chrome-webstore-publish-action'
+description: 'Publish your uploaded WebExtension at Chrome Web Store'
+author: 'cardinalby'
+inputs:
+  extensionId:
+    description: 'Your extension id in Chrome Web Store'
+    required: true
+  apiClientId:
+    description: 'Web Store API Client Id (use secrets!)'
+    required: false
+  apiClientSecret:
+    description: 'Web Store API Client Secret (use secrets!)'
+    required: false
+  apiRefreshToken:
+    description: 'Web Store API Refresh token (use secrets!)'
+    required: false
+  publishTarget:
+    description: 'Publishing target: `default` or `trustedTesters`'
+    default: 'default'
+    required: false
+  publishIgnore500Error:
+    description: 'Experimental feature to bypass undocumented Web Store behaviour. Consider 500 response as success'
+    default: 'true'
+    required: false
+outputs:
+  publishedWith500Error:
+    description: 'Publish finished with 500 error (special case)'
+  publishStatus:
+    description: >-
+      Set of publish statuses from API response separated by `|`. Can be empty in case of 500 error.
+      Values: OK, NOT_AUTHORIZED, INVALID_DEVELOPER, DEVELOPER_NO_OWNERSHIP, DEVELOPER_SUSPENDED,
+      ITEM_NOT_FOUND, ITEM_PENDING_REVIEW , ITEM_TAKEN_DOWN, PUBLISHER_SUSPENDED
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+branding:
+  icon: 'package'
