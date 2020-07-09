@@ -7585,13 +7585,7 @@ __export(__webpack_require__(585));
 
 /***/ }),
 /* 145 */,
-/* 146 */
-/***/ (function() {
-
-eval("require")("../declarations/uploadedExtInfo");
-
-
-/***/ }),
+/* 146 */,
 /* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -8534,6 +8528,13 @@ module.exports = exports['default'];
 
 Object.defineProperty(exports, "__esModule", { value: true });
 class UploadInReviewError extends Error {
+    constructor(message, currentVersion) {
+        super(message);
+        this._currentVersion = currentVersion;
+    }
+    get currentVersion() {
+        return this._currentVersion;
+    }
 }
 exports.UploadInReviewError = UploadInReviewError;
 //# sourceMappingURL=uploadInReviewError.js.map
@@ -8651,7 +8652,7 @@ class ChromeWebstoreBuilder extends webext_buildtools_utils_1.AbstractSimpleBuil
                 oldExtensionResource = await apiFacade.getCurrentlyUploadedResource();
                 const shouldUpload = validateVersion_1.validateVersion(this._inputManifest.version, oldExtensionResource, throwIfVersionAlreadyUploaded, this._logWrapper);
                 if (shouldUpload) {
-                    newExtensionResource = await upload_1.upload(this._inputZipBuffer, this._options.upload || {}, apiFacade, this._inputManifest);
+                    newExtensionResource = await upload_1.upload(this._inputZipBuffer, this._options.upload || {}, oldExtensionResource.crxVersion, apiFacade, this._inputManifest);
                 }
                 result.getAssets().uploadedExt = new buildResult_1.ChromeWebstoreUploadedExtAsset({
                     oldVersion: oldExtensionResource,
@@ -29424,7 +29425,7 @@ module.exports.DuplexWrapper = DuplexWrapper;
   var undefined;
 
   /** Used as the semantic version number. */
-  var VERSION = '4.17.15';
+  var VERSION = '4.17.19';
 
   /** Used as the size to enable large array optimizations. */
   var LARGE_ARRAY_SIZE = 200;
@@ -33131,8 +33132,21 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * @returns {Array} Returns the new sorted array.
      */
     function baseOrderBy(collection, iteratees, orders) {
+      if (iteratees.length) {
+        iteratees = arrayMap(iteratees, function(iteratee) {
+          if (isArray(iteratee)) {
+            return function(value) {
+              return baseGet(value, iteratee.length === 1 ? iteratee[0] : iteratee);
+            }
+          }
+          return iteratee;
+        });
+      } else {
+        iteratees = [identity];
+      }
+
       var index = -1;
-      iteratees = arrayMap(iteratees.length ? iteratees : [identity], baseUnary(getIteratee()));
+      iteratees = arrayMap(iteratees, baseUnary(getIteratee()));
 
       var result = baseMap(collection, function(value, key, collection) {
         var criteria = arrayMap(iteratees, function(iteratee) {
@@ -33389,6 +33403,10 @@ module.exports.DuplexWrapper = DuplexWrapper;
         var key = toKey(path[index]),
             newValue = value;
 
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          return object;
+        }
+
         if (index != lastIndex) {
           var objValue = nested[key];
           newValue = customizer ? customizer(objValue, key, nested) : undefined;
@@ -33541,11 +33559,14 @@ module.exports.DuplexWrapper = DuplexWrapper;
      *  into `array`.
      */
     function baseSortedIndexBy(array, value, iteratee, retHighest) {
-      value = iteratee(value);
-
       var low = 0,
-          high = array == null ? 0 : array.length,
-          valIsNaN = value !== value,
+          high = array == null ? 0 : array.length;
+      if (high === 0) {
+        return 0;
+      }
+
+      value = iteratee(value);
+      var valIsNaN = value !== value,
           valIsNull = value === null,
           valIsSymbol = isSymbol(value),
           valIsUndefined = value === undefined;
@@ -35030,10 +35051,11 @@ module.exports.DuplexWrapper = DuplexWrapper;
       if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
         return false;
       }
-      // Assume cyclic values are equal.
-      var stacked = stack.get(array);
-      if (stacked && stack.get(other)) {
-        return stacked == other;
+      // Check that cyclic values are equal.
+      var arrStacked = stack.get(array);
+      var othStacked = stack.get(other);
+      if (arrStacked && othStacked) {
+        return arrStacked == other && othStacked == array;
       }
       var index = -1,
           result = true,
@@ -35195,10 +35217,11 @@ module.exports.DuplexWrapper = DuplexWrapper;
           return false;
         }
       }
-      // Assume cyclic values are equal.
-      var stacked = stack.get(object);
-      if (stacked && stack.get(other)) {
-        return stacked == other;
+      // Check that cyclic values are equal.
+      var objStacked = stack.get(object);
+      var othStacked = stack.get(other);
+      if (objStacked && othStacked) {
+        return objStacked == other && othStacked == object;
       }
       var result = true;
       stack.set(object, other);
@@ -38579,6 +38602,10 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * // The `_.property` iteratee shorthand.
      * _.filter(users, 'active');
      * // => objects for ['barney']
+     *
+     * // Combining several predicates using `_.overEvery` or `_.overSome`.
+     * _.filter(users, _.overSome([{ 'age': 36 }, ['age', 40]]));
+     * // => objects for ['fred', 'barney']
      */
     function filter(collection, predicate) {
       var func = isArray(collection) ? arrayFilter : baseFilter;
@@ -39328,15 +39355,15 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * var users = [
      *   { 'user': 'fred',   'age': 48 },
      *   { 'user': 'barney', 'age': 36 },
-     *   { 'user': 'fred',   'age': 40 },
+     *   { 'user': 'fred',   'age': 30 },
      *   { 'user': 'barney', 'age': 34 }
      * ];
      *
      * _.sortBy(users, [function(o) { return o.user; }]);
-     * // => objects for [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 40]]
+     * // => objects for [['barney', 36], ['barney', 34], ['fred', 48], ['fred', 30]]
      *
      * _.sortBy(users, ['user', 'age']);
-     * // => objects for [['barney', 34], ['barney', 36], ['fred', 40], ['fred', 48]]
+     * // => objects for [['barney', 34], ['barney', 36], ['fred', 30], ['fred', 48]]
      */
     var sortBy = baseRest(function(collection, iteratees) {
       if (collection == null) {
@@ -44211,11 +44238,11 @@ module.exports.DuplexWrapper = DuplexWrapper;
 
       // Use a sourceURL for easier debugging.
       // The sourceURL gets injected into the source that's eval-ed, so be careful
-      // with lookup (in case of e.g. prototype pollution), and strip newlines if any.
-      // A newline wouldn't be a valid sourceURL anyway, and it'd enable code injection.
+      // to normalize all kinds of whitespace, so e.g. newlines (and unicode versions of it) can't sneak in
+      // and escape the comment, thus injecting code that gets evaled.
       var sourceURL = '//# sourceURL=' +
         (hasOwnProperty.call(options, 'sourceURL')
-          ? (options.sourceURL + '').replace(/[\r\n]/g, ' ')
+          ? (options.sourceURL + '').replace(/\s/g, ' ')
           : ('lodash.templateSources[' + (++templateCounter) + ']')
         ) + '\n';
 
@@ -44248,8 +44275,6 @@ module.exports.DuplexWrapper = DuplexWrapper;
 
       // If `variable` is not specified wrap a with-statement around the generated
       // code to add the data object to the top of the scope chain.
-      // Like with sourceURL, we take care to not check the option's prototype,
-      // as this configuration is a code injection vector.
       var variable = hasOwnProperty.call(options, 'variable') && options.variable;
       if (!variable) {
         source = 'with (obj) {\n' + source + '\n}\n';
@@ -44956,6 +44981,9 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * values against any array or object value, respectively. See `_.isEqual`
      * for a list of supported value comparisons.
      *
+     * **Note:** Multiple values can be checked by combining several matchers
+     * using `_.overSome`
+     *
      * @static
      * @memberOf _
      * @since 3.0.0
@@ -44971,6 +44999,10 @@ module.exports.DuplexWrapper = DuplexWrapper;
      *
      * _.filter(objects, _.matches({ 'a': 4, 'c': 6 }));
      * // => [{ 'a': 4, 'b': 5, 'c': 6 }]
+     *
+     * // Checking for several possible values
+     * _.filter(users, _.overSome([_.matches({ 'a': 1 }), _.matches({ 'a': 4 })]));
+     * // => [{ 'a': 1, 'b': 2, 'c': 3 }, { 'a': 4, 'b': 5, 'c': 6 }]
      */
     function matches(source) {
       return baseMatches(baseClone(source, CLONE_DEEP_FLAG));
@@ -44984,6 +45016,9 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * **Note:** Partial comparisons will match empty array and empty object
      * `srcValue` values against any array or object value, respectively. See
      * `_.isEqual` for a list of supported value comparisons.
+     *
+     * **Note:** Multiple values can be checked by combining several matchers
+     * using `_.overSome`
      *
      * @static
      * @memberOf _
@@ -45001,6 +45036,10 @@ module.exports.DuplexWrapper = DuplexWrapper;
      *
      * _.find(objects, _.matchesProperty('a', 4));
      * // => { 'a': 4, 'b': 5, 'c': 6 }
+     *
+     * // Checking for several possible values
+     * _.filter(users, _.overSome([_.matchesProperty('a', 1), _.matchesProperty('a', 4)]));
+     * // => [{ 'a': 1, 'b': 2, 'c': 3 }, { 'a': 4, 'b': 5, 'c': 6 }]
      */
     function matchesProperty(path, srcValue) {
       return baseMatchesProperty(path, baseClone(srcValue, CLONE_DEEP_FLAG));
@@ -45224,6 +45263,10 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * Creates a function that checks if **all** of the `predicates` return
      * truthy when invoked with the arguments it receives.
      *
+     * Following shorthands are possible for providing predicates.
+     * Pass an `Object` and it will be used as an parameter for `_.matches` to create the predicate.
+     * Pass an `Array` of parameters for `_.matchesProperty` and the predicate will be created using them.
+     *
      * @static
      * @memberOf _
      * @since 4.0.0
@@ -45250,6 +45293,10 @@ module.exports.DuplexWrapper = DuplexWrapper;
      * Creates a function that checks if **any** of the `predicates` return
      * truthy when invoked with the arguments it receives.
      *
+     * Following shorthands are possible for providing predicates.
+     * Pass an `Object` and it will be used as an parameter for `_.matches` to create the predicate.
+     * Pass an `Array` of parameters for `_.matchesProperty` and the predicate will be created using them.
+     *
      * @static
      * @memberOf _
      * @since 4.0.0
@@ -45269,6 +45316,9 @@ module.exports.DuplexWrapper = DuplexWrapper;
      *
      * func(NaN);
      * // => false
+     *
+     * var matchesFunc = _.overSome([{ 'a': 1 }, { 'a': 2 }])
+     * var matchesPropertyFunc = _.overSome([['a', 1], ['a', 2]])
      */
     var overSome = createOver(arraySome);
 
@@ -51241,9 +51291,10 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const builder_1 = __webpack_require__(192);
 exports.default = builder_1.ChromeWebstoreBuilder;
-__export(__webpack_require__(146));
 __export(__webpack_require__(775));
 __export(__webpack_require__(740));
+var typed_chrome_webstore_api_1 = __webpack_require__(301);
+exports.WebstoreResource = typed_chrome_webstore_api_1.WebstoreResource;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
@@ -59637,7 +59688,7 @@ module.exports = format((info, opts) => {
 Object.defineProperty(exports, "__esModule", { value: true });
 const webstoreApi = __webpack_require__(301);
 const errors_1 = __webpack_require__(740);
-async function upload(inputZipBuffer, options, apiFacade, inputManifest) {
+async function upload(inputZipBuffer, options, currentWebstoreVersion, apiFacade, inputManifest) {
     let uploadResult;
     try {
         uploadResult = await apiFacade.uploadExisting(inputZipBuffer, options.waitForSuccess);
@@ -59657,7 +59708,7 @@ async function upload(inputZipBuffer, options, apiFacade, inputManifest) {
             .join('. ')
         : `Upload has ${uploadResult.uploadState} state`);
     if (uploadResult.isFailedBecauseOfPendingReview()) {
-        throw new errors_1.UploadInReviewError(uploadErrorMsg);
+        throw new errors_1.UploadInReviewError(uploadErrorMsg, currentWebstoreVersion);
     }
     throw new Error(uploadErrorMsg);
 }
