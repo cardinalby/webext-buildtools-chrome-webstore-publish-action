@@ -1,6 +1,6 @@
 {
   "name": "webext-buildtools-chrome-webstore-publish-action",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
   "description": "Publish your uploaded WebExtension at Chrome Web Store",
   "main": "lib/main.js",
@@ -31,7 +31,7 @@
   "dependencies": {
     "@actions/core": "^1.2.0",
     "github-actions-utils": "^1.0.7",
-    "webext-buildtools-chrome-webstore-builder": "^1.1.10",
+    "webext-buildtools-chrome-webstore-builder": "^1.1.11",
     "winston": "^3.2.1"
   },
   "devDependencies": {
