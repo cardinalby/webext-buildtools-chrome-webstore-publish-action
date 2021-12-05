@@ -64,3 +64,7 @@ the refresh token might **stop working** if it has not been used for **six month
 To avoid that, schedule
 [google-api-fetch-token-action](https://github.com/cardinalby/google-api-fetch-token-action) action 
 with the same credentials.
+
+---
+If you are interested in the building the entire deployment workflow for WebExtension, 
+you can read this [article](https://dev.to/cardinalby/webextension-deployment-and-publishing-using-github-actions-522o).
