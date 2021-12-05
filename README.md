@@ -2,6 +2,9 @@
 
 # Publish your uploaded WebExtension at Chrome Web Store
 
+Publishes your WebExtension after you have uploaded it to the store. To automate uploading look at 
+[webext-buildtools-chrome-webstore-upload-action](https://github.com/cardinalby/webext-buildtools-chrome-webstore-upload-action)
+
 Based on [ChromeWebstoreBuilder](https://www.npmjs.com/package/webext-buildtools-chrome-webstore-builder) 
 package.
 
