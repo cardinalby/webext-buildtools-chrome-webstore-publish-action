@@ -34,7 +34,7 @@ outputs:
       Values: OK, NOT_AUTHORIZED, INVALID_DEVELOPER, DEVELOPER_NO_OWNERSHIP, DEVELOPER_SUSPENDED,
       ITEM_NOT_FOUND, ITEM_PENDING_REVIEW , ITEM_TAKEN_DOWN, PUBLISHER_SUSPENDED
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'
 branding:
   icon: 'package'
