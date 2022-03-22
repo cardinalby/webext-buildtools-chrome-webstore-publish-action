@@ -1,4 +1,4 @@
-name: 'webext-buildtools-chrome-webstore-publish-action'
+name: 'Publish an extension on Chrome Web Store'
 description: 'Publish your uploaded WebExtension at Chrome Web Store'
 author: 'cardinalby'
 inputs:
